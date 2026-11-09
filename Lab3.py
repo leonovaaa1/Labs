@@ -1,133 +1,204 @@
+from abc import ABC, abstractmethod
 
-class Logger:
+
+class Settings:
     _instance = None
 
-    def __new__(cls):
+    def __init__(self):
+        self.language = "ru"
+        self.theme = "light"
+
+    @classmethod
+    def get_instance(cls):
         if cls._instance is None:
-            cls._instance = super().__new__(cls)
-            cls._instance.messages = []
+            cls._instance = cls()
         return cls._instance
 
-    def log(self, text):
-        self.messages.append(text)
+
+class Notification(ABC):
+    @abstractmethod
+    def send(self, message): ...
 
 
-
-class Truck:
-    def deliver(self):
-        return "Грузовик везёт груз по дороге"
-
-
-class Ship:
-    def deliver(self):
-        return "Корабль везёт груз по морю"
+class EmailNotification(Notification):
+    def send(self, message):
+        print("Отправлено по e-mail: " + message)
 
 
-class Logistics:
-    def create_transport(self):
-        raise NotImplementedError
-
-    def plan_delivery(self):
-        return self.create_transport().deliver()
+class SmsNotification(Notification):
+    def send(self, message):
+        print("Отправлено по SMS: " + message)
 
 
-class RoadLogistics(Logistics):
-    def create_transport(self):
-        return Truck()
+class NotificationFactory(ABC):
+    @abstractmethod
+    def create_notification(self):
+        ...
+
+    def notify(self, message):
+        notification = self.create_notification()
+        notification.send(message)
 
 
-class SeaLogistics(Logistics):
-    def create_transport(self):
-        return Ship()
+class EmailFactory(NotificationFactory):
+    def create_notification(self):
+        return EmailNotification()
 
 
-
-class WindowsButton:
-    def render(self):
-        return "Кнопка Windows"
-
-
-class WindowsCheckbox:
-    def render(self):
-        return "Флажок Windows"
+class SmsFactory(NotificationFactory):
+    def create_notification(self):
+        return SmsNotification()
 
 
-class MacButton:
-    def render(self):
-        return "Кнопка macOS"
+class Chair(ABC):
+    @abstractmethod
+    def show(self): ...
 
 
-class MacCheckbox:
-    def render(self):
-        return "Флажок macOS"
+class ModernChair(Chair):
+    def show(self):
+        print("Современный стул: металл и пластик.")
 
 
-class WindowsFactory:
-    def create_button(self):
-        return WindowsButton()
-
-    def create_checkbox(self):
-        return WindowsCheckbox()
+class ClassicChair(Chair):
+    def show(self):
+        print("Классический стул: резное дерево.")
 
 
-class MacFactory:
-    def create_button(self):
-        return MacButton()
-
-    def create_checkbox(self):
-        return MacCheckbox()
+class Table(ABC):
+    @abstractmethod
+    def show(self): ...
 
 
-def show_interface(factory):
-    print(factory.create_button().render())
-    print(factory.create_checkbox().render())
+class ModernTable(Table):
+    def show(self):
+        print("Современный стол: стекло и металл.")
 
 
+class ClassicTable(Table):
+    def show(self):
+        print("Классический стол: массив дуба.")
 
-class Computer:
+
+class FurnitureFactory(ABC):
+    @abstractmethod
+    def create_chair(self): ...
+
+    @abstractmethod
+    def create_table(self): ...
+
+
+class ModernFactory(FurnitureFactory):
+    def create_chair(self):
+        return ModernChair()
+
+    def create_table(self):
+        return ModernTable()
+
+
+class ClassicFactory(FurnitureFactory):
+    def create_chair(self):
+        return ClassicChair()
+
+    def create_table(self):
+        return ClassicTable()
+
+
+class Room:
+    def __init__(self, factory):
+        self.chair = factory.create_chair()
+        self.table = factory.create_table()
+
+    def show(self):
+        self.chair.show()
+        self.table.show()
+
+
+class Burger:
     def __init__(self):
-        self.parts = []
+        self.bun = None
+        self.patty = None
+        self.sauce = None
 
     def __str__(self):
-        return ", ".join(self.parts)
+        return f"Burger(bun='{self.bun}', patty='{self.patty}', sauce='{self.sauce}')"
 
 
-class ComputerBuilder:
+class BurgerBuilder(ABC):
+    @abstractmethod
+    def build_bun(self): ...
+
+    @abstractmethod
+    def build_patty(self): ...
+
+    @abstractmethod
+    def build_sauce(self): ...
+
+    @abstractmethod
+    def get_result(self): ...
+
+
+class BeefBurgerBuilder(BurgerBuilder):
     def __init__(self):
-        self.computer = Computer()
+        self.burger = Burger()
 
-    def add_cpu(self, name):
-        self.computer.parts.append("процессор " + name)
+    def build_bun(self):
+        self.burger.bun = "с кунжутом"
 
-    def add_ram(self, size):
-        self.computer.parts.append("память " + size)
+    def build_patty(self):
+        self.burger.patty = "говяжья котлета"
 
-    def add_gpu(self, name):
-        self.computer.parts.append("видеокарта " + name)
+    def build_sauce(self):
+        self.burger.sauce = "барбекю"
 
     def get_result(self):
-        return self.computer
+        return self.burger
 
 
+class VeggieBurgerBuilder(BurgerBuilder):
+    def __init__(self):
+        self.burger = Burger()
 
-print("--- Singleton ---")
-a = Logger()
-b = Logger()
-a.log("привет")
-print("Это один объект:", a is b)
-print("Сообщения через b:", b.messages)
+    def build_bun(self):
+        self.burger.bun = "цельнозерновая"
 
-print("\n--- Factory Method ---")
-for logistics in (RoadLogistics(), SeaLogistics()):
-    print(logistics.plan_delivery())
+    def build_patty(self):
+        self.burger.patty = "овощная котлета"
 
-print("\n--- Abstract Factory ---")
-show_interface(WindowsFactory())
-show_interface(MacFactory())
+    def build_sauce(self):
+        self.burger.sauce = "йогуртовый"
 
-print("\n--- Builder ---")
-builder = ComputerBuilder()
-builder.add_cpu("Intel i5")
-builder.add_ram("16 ГБ")
-builder.add_gpu("RTX 4070")
-print("Компьютер:", builder.get_result())
+    def get_result(self):
+        return self.burger
+
+
+class BurgerDirector:
+    def __init__(self, builder):
+        self.builder = builder
+
+    def construct_burger(self):
+        self.builder.build_bun()
+        self.builder.build_patty()
+        self.builder.build_sauce()
+
+
+if __name__ == "__main__":
+    print("--- Singleton ---")
+    s1 = Settings.get_instance()
+    s2 = Settings.get_instance()
+    s1.theme = "dark"
+    print("Один и тот же объект:", s1 is s2)
+    print("Тема через s2:", s2.theme)
+
+    print("\n--- Factory Method ---")
+    EmailFactory().notify("Заказ оформлен")
+    SmsFactory().notify("Заказ оформлен")
+
+    print("\n--- Abstract Factory ---")
+    Room(ModernFactory()).show()
+    Room(ClassicFactory()).show()
+
+    print("\n--- Builder ---")
+    for builder in (BeefBurgerBuilder(), VeggieBurgerBuilder()):
+        BurgerDirector(builder).construct_burger()
+        print(builder.get_result())
